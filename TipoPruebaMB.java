@@ -1,60 +1,66 @@
 package com.example.mb;
 
-import java.io.Serializable;
 import java.util.List;
-import javax.annotation.PostConstruct;
-import javax.faces.bean.ManagedBean;
-import javax.faces.bean.ViewScoped;
-import javax.inject.Inject;
 import com.example.dto.TipoPruebaDTO;
 import com.example.service.FacturacionS;
 
-@ManagedBean
-@ViewScoped
-public class TipoPruebaMB implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class TipoPruebaMB extends AbstractFacturacionMB<TipoPruebaDTO, TipoPruebaDTO> {
+    
+    private DataListAudit<TipoPruebaDTO> tipoPruebaDataList;
 
-    @Inject
-    private FacturacionS facturacionS;
-
-    private List<TipoPruebaDTO> listaTipoPrueba;
-    private TipoPruebaDTO tipoPruebaSeleccionado;
-
-    @PostConstruct
-    public void init() {
-        listaTipoPrueba = facturacionS.obtenerTodosLosTiposDePrueba();
-        tipoPruebaSeleccionado = new TipoPruebaDTO();
+    @Override
+    public void getInit() {
+        // para búsquedas
+        filterDTO = new TipoPruebaDTO();
+        filterDTO.setEstado(Estado.ACTIVO);
+        tipoPruebaDataList.unload();
+        currentDTO = new TipoPruebaDTO();
     }
 
-    public void guardarTipoPrueba() {
-        if (tipoPruebaSeleccionado.getId() == null) {
-            facturacionS.crearTipoPrueba(tipoPruebaSeleccionado);
-        } else {
-            facturacionS.actualizarTipoPrueba(tipoPruebaSeleccionado);
+    @Override
+    protected List<TipoPruebaDTO> loadDataTableCollection(TipoPruebaDTO tipoPrueba, PaginationParams pagination) {
+        tipoPruebaDataList.unload();
+        return new ArrayList<TipoPruebaDTO>();
+    }
+
+    ///////////// DATA LIST ///////////////
+    DataListAudit<TipoPruebaDTO> tipoPruebaDataList = new DataListAudit<TipoPruebaDTO>(this) {
+        public void initAudit() {
+            initAudit(corporativoS, sesionUsuario.getOpcionActual(), null, sesionUsuario);
         }
-        listaTipoPrueba = facturacionS.obtenerTodosLosTiposDePrueba();
-        tipoPruebaSeleccionado = new TipoPruebaDTO();
-    }
 
-    public void eliminarTipoPrueba(Long id) {
-        facturacionS.eliminarTipoPrueba(id);
-        listaTipoPrueba = facturacionS.obtenerTodosLosTiposDePrueba();
-    }
+        @Override
+        protected List<TipoPruebaDTO> loadCollection(PaginationParams pagination) {
+            List<TipoPruebaDTO> list = FacturacionS.obtenerTiposPruebaList(filterDTO, pagination);
+            return list;
+        }
 
-    // Getters and Setters
-    public List<TipoPruebaDTO> getListaTipoPrueba() {
-        return listaTipoPrueba;
-    }
+        protected TipoPruebaDTO actionNew() {
+            currentDTO = new TipoPruebaDTO();
+            return currentDTO;
+        }
 
-    public void setListaTipoPrueba(List<TipoPruebaDTO> listaTipoPrueba) {
-        this.listaTipoPrueba = listaTipoPrueba;
-    }
+        @Override
+        protected TipoPruebaDTO actionSave(TipoPruebaDTO tipoPrueba) {
+            tipoPrueba = FacturacionS.guardarTipoPrueba(tipoPrueba);
+            actionEdit(tipoPrueba);
+            return tipoPrueba;
+        }
 
-    public TipoPruebaDTO getTipoPruebaSeleccionado() {
-        return tipoPruebaSeleccionado;
-    }
+        @Override
+        protected void actionMultiSave(Set<TipoPruebaDTO> items) {
+            for (TipoPruebaDTO item : items) {
+                item = FacturacionS.guardarTipoPrueba(item);
+            }
+        }
 
-    public void setTipoPruebaSeleccionado(TipoPruebaDTO tipoPruebaSeleccionado) {
-        this.tipoPruebaSeleccionado = tipoPruebaSeleccionado;
+        protected TipoPruebaDTO actionEdit(TipoPruebaDTO tipoPrueba) {
+            currentDTO = tipoPruebaDataList.getActiveItem();
+            return tipoPrueba;
+        }
+    };
+
+    public DataList<TipoPruebaDTO> getTipoPruebaDataList() {
+        return tipoPruebaDataList;
     }
 }
